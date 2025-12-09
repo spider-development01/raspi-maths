@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Attendance - Student</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --glass-bg: rgba(255, 255, 255, 0.1); --accent: #00d2ff; }
+        body {
+            margin: 0; font-family: 'Poppins', sans-serif;
+            background: linear-gradient(45deg, #0f2027, #203a43, #2c5364);
+            color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .container {
+            background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+            padding: 30px; border-radius: 20px; text-align: center; width: 90%; max-width: 500px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        /* UPDATED: Text Title instead of Logo */
+        .school-title {
+            font-size: 2.5rem; font-weight: 700; margin-bottom: 20px; letter-spacing: 3px;
+            cursor: pointer; user-select: none; transition: 0.3s; text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .school-title:hover { opacity: 0.8; }
+
+        .video-box {
+            width: 100%; height: 300px; background: black; border-radius: 10px; overflow: hidden;
+            position: relative; border: 2px solid rgba(255,255,255,0.1);
+        }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--accent);
+            box-shadow: 0 0 15px var(--accent); animation: scan 2s infinite;
+        }
+        @keyframes scan { 0% {top:0} 50% {top:100%} 100% {top:0} }
+        
+        button {
+            margin-top: 20px; padding: 15px 40px; border-radius: 50px; border: none;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5); color: white; font-weight: bold;
+            font-size: 1.1rem; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0,210,255,0.5); }
+        
+        .alert { background: #ff0000; color: white; padding: 10px; border-radius: 5px; margin-top: 15px; display: none; font-weight: bold; }
+
+        /* Popup Styles */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000;
+            display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .popup-content {
+            background: #1e272e; padding: 30px; border-radius: 20px;
+            border: 2px solid var(--accent); text-align: center; width: 90%; max-width: 400px;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4); animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .checkmark-circle {
+            width: 60px; height: 60px; background: var(--accent); border-radius: 50%;
+            margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center;
+        }
+        .checkmark {
+            display: inline-block; width: 20px; height: 10px;
+            border-bottom: 4px solid #fff; border-left: 4px solid #fff;
+            transform: rotate(-45deg); margin-top: -5px;
+        }
+        .popup-btn {
+            margin-top: 20px; background: var(--accent); color: #000;
+            padding: 10px 30px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CLICK THIS TEXT TO LOCK SYSTEM -->
+        <h1 class="school-title" id="schoolHeader" onclick="toggleLock()">SCHOOL</h1>
+        
+        <div class="video-box">
+            <video id="cam" autoplay playsinline></video>
+            <div class="scan-line"></div>
+        </div>
+        <button onclick="mark()">Mark Attendance</button>
+        <div class="alert" id="alert">NOT AUTHORIZED</div>
+    </div>
+
+    <!-- Success Popup -->
+    <div class="popup-overlay" id="successPopup">
+        <div class="popup-content">
+            <div class="checkmark-circle"><div class="checkmark"></div></div>
+            <h2 style="margin-bottom: 10px;">Success!</h2>
+            <p id="popupMessage" style="font-size: 1.1rem; line-height: 1.5; color: #ddd;"></p>
+            <button class="popup-btn" onclick="closePopup()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://sbizlblusoergeluicdj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiaXpsYmx1c29lcmdlbHVpY2RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxOTI3MDAsImV4cCI6MjA4MDc2ODcwMH0.m9wIHdTRONaC-ckJF_dPs_F-eULaD3riWgu2_e21mlc';
+        const ESP_IP = 'http://192.168.1.10';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => document.getElementById('cam').srcObject = s);
+        
+        let clicks = 0;
+        let isSystemLocked = false; // Lock State
+
+        const users = [
+            { n: "Divyansh Singh", c: "IX - A", a: "6677", url: "/led1" },
+            { n: "Aryann Sharma", c: "IX - A", a: "6779", url: "/led2" }
+        ];
+
+        // Toggle Lock Function
+        function toggleLock() {
+            isSystemLocked = !isSystemLocked;
+            const title = document.getElementById('schoolHeader');
+            if(isSystemLocked) {
+                title.style.color = '#808080'; // Red indicates Locked
+            } else {
+                title.style.color = 'white';
+            }
+        }
+
+        async function mark() {
+            const alertBox = document.getElementById('alert');
+            alertBox.style.display = 'none';
+
+            // Check if System is Locked
+            if(isSystemLocked) {
+                alertBox.innerText = "NOT AUTHORIZED";
+                alertBox.style.display = 'block';
+                return;
+            }
+
+            if(clicks < 2) {
+                const u = users[clicks];
+                
+                // 1. Popup
+                const msg = `Attendance marked for<br><strong style="color:#00d2ff">${u.n}</strong><br>Adm No: ${u.a}`;
+                document.getElementById('popupMessage').innerHTML = msg;
+                document.getElementById('successPopup').style.display = 'flex';
+                setTimeout(closePopup, 3000);
+
+                // 2. Trigger ESP
+                fetch(ESP_IP + u.url).catch(e => console.log("ESP Error"));
+
+                // 3. Supabase Logic
+                const startOfDay = new Date();
+                startOfDay.setHours(0,0,0,0);
+                
+                await supabase.from('attendance')
+                    .delete()
+                    .eq('admission_no', u.a)
+                    .gte('created_at', startOfDay.toISOString());
+
+                await supabase.from('attendance')
+                    .insert([{ name: u.n, admission_no: u.a, class: u.c, status: 'Present' }]);
+
+                clicks++;
+            } else {
+                alertBox.innerText = "NOT AUTHORIZED (Unknown User)";
+                alertBox.style.display = 'block';
+            }
+        }
+
+        function closePopup() {
+            document.getElementById('successPopup').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
