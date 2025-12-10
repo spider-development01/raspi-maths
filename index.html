@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Attendance - Student</title>
+    <title>π SCHOOL Attendance - Student</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -19,7 +19,7 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         
-        /* UPDATED: Text Title instead of Logo */
+        /* Title text stays white due to body color inheritance */
         .school-title {
             font-size: 2.5rem; font-weight: 700; margin-bottom: 20px; letter-spacing: 3px;
             cursor: pointer; user-select: none; transition: 0.3s; text-shadow: 0 0 10px rgba(0,0,0,0.5);
@@ -44,7 +44,17 @@
         }
         button:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0,210,255,0.5); }
         
-        .alert { background: #ff0000; color: white; padding: 10px; border-radius: 5px; margin-top: 15px; display: none; font-weight: bold; }
+        .alert { background: #e74c3c; color: white; padding: 10px; border-radius: 5px; margin-top: 15px; display: none; font-weight: bold; }
+
+        /* IP Input Style */
+        .ip-config {
+            margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .ip-input {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #aaa;
+            padding: 8px; border-radius: 5px; width: 200px; text-align: center; font-size: 0.8rem;
+        }
 
         /* Popup Styles */
         .popup-overlay {
@@ -75,8 +85,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- CLICK THIS TEXT TO LOCK SYSTEM -->
-        <h1 class="school-title" id="schoolHeader" onclick="toggleLock()">SCHOOL</h1>
+        <!-- Clicking this toggles lock invisibly -->
+        <h1 class="school-title" id="schoolHeader" onclick="toggleLock()"> π SCHOOL ATTENDANCE</h1>
         
         <div class="video-box">
             <video id="cam" autoplay playsinline></video>
@@ -84,6 +94,12 @@
         </div>
         <button onclick="mark()">Mark Attendance</button>
         <div class="alert" id="alert">NOT AUTHORIZED</div>
+
+        <!-- NEW IP CONFIGURATION INPUT -->
+        <div class="ip-config">
+            <label style="font-size:0.8rem; color:#888; margin-bottom:5px;">ESP8266 IP Address:</label>
+            <input type="text" id="espIpInput" class="ip-input" placeholder="e.g. 192.168.1.10" oninput="saveIP()">
+        </div>
     </div>
 
     <!-- Success Popup -->
@@ -100,28 +116,29 @@
         // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://sbizlblusoergeluicdj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiaXpsYmx1c29lcmdlbHVpY2RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxOTI3MDAsImV4cCI6MjA4MDc2ODcwMH0.m9wIHdTRONaC-ckJF_dPs_F-eULaD3riWgu2_e21mlc';
-        const ESP_IP = 'http://192.168.0.160';
         
+        // Load IP from local storage or default
+        let currentEspIP = localStorage.getItem('esp_ip_student') || '192.168.1.10';
+        document.getElementById('espIpInput').value = currentEspIP;
+
+        function saveIP() {
+            currentEspIP = document.getElementById('espIpInput').value;
+            localStorage.setItem('esp_ip_student', currentEspIP);
+        }
+
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         navigator.mediaDevices.getUserMedia({ video: true }).then(s => document.getElementById('cam').srcObject = s);
         
         let clicks = 0;
-        let isSystemLocked = false; // Lock State
+        let isSystemLocked = false; 
 
         const users = [
-            { n: "Divyansh Singh", c: "IX - A", a: "6677", url: "/led1" },
-            { n: "Aryann Sharma", c: "IX - A", a: "6779", url: "/led2" }
+            { n: "Divyansh Sachdeva", c: "IX - α", a: "1609", url: "/led1" },
+            { n: "Aryann Narang", c: "IX - α", a: "4003", url: "/led2" }
         ];
 
-        // Toggle Lock Function
         function toggleLock() {
             isSystemLocked = !isSystemLocked;
-            const title = document.getElementById('schoolHeader');
-            if(isSystemLocked) {
-                title.style.color = '#808080'; // Red indicates Locked
-            } else {
-                title.style.color = 'white';
-            }
         }
 
         async function mark() {
@@ -144,8 +161,10 @@
                 document.getElementById('successPopup').style.display = 'flex';
                 setTimeout(closePopup, 3000);
 
-                // 2. Trigger ESP
-                fetch(ESP_IP + u.url).catch(e => console.log("ESP Error"));
+                // 2. Trigger ESP (Using Dynamic IP)
+                // Ensure http:// is prepended
+                const ip = currentEspIP.startsWith('http') ? currentEspIP : 'http://' + currentEspIP;
+                fetch(ip + u.url).catch(e => console.log("ESP Error or Not Connected"));
 
                 // 3. Supabase Logic
                 const startOfDay = new Date();
