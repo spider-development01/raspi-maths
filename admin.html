@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>School Admin Panel - Analytics</title>
+    <title>π SCHOOL  Admin Panel - Analytics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -23,6 +23,12 @@
         #dashboard { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; background: var(--glass); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
         
+        /* ESP Input in Header */
+        .esp-admin-input {
+            background: rgba(0,0,0,0.3); border: 1px solid #555; color: white;
+            padding: 8px; border-radius: 5px; width: 140px; margin-right: 10px; text-align: center;
+        }
+
         /* Tabs */
         .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid rgba(255,255,255,0.1); padding: 10px 25px; border-radius: 50px; cursor: pointer; transition: 0.3s; }
@@ -54,7 +60,6 @@
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
         
-        /* New Probability Box in Modal */
         .prob-box {
             margin-top: 20px; padding: 15px; background: rgba(155, 89, 182, 0.2); 
             border: 1px solid #9b59b6; border-radius: 10px; text-align: center;
@@ -66,8 +71,7 @@
     <!-- Login -->
     <div id="login-screen">
         <div class="login-card">
-            <!-- Using Text instead of Image for Login too to match theme -->
-            <h2 style="color:var(--accent); letter-spacing:2px; margin-bottom:20px;">SCHOOL ADMIN</h2>
+            <h2 style="color:var(--accent); letter-spacing:2px; margin-bottom:20px;">π SCHOOL  ADMIN</h2>
             <div class="input-group">
                 <label>Username</label><input type="text" id="user">
             </div>
@@ -85,9 +89,10 @@
     <div id="dashboard">
         <div class="header">
             <div style="display:flex; align-items:center; gap:15px">
-                <h2 style="margin:0; letter-spacing:1px;">SCHOOL ANALYTICS</h2>
+                <h2 style="margin:0; letter-spacing:1px;">π SCHOOL  ANALYTICS</h2>
             </div>
-            <div>
+            <div style="display:flex; align-items:center;">
+                <input type="text" id="adminEspIp" class="esp-admin-input" placeholder="ESP IP" oninput="saveAdminIP()">
                 <button class="reset-btn" onclick="resetDB()">Reset All Data</button>
                 <button class="logout-btn" onclick="logout()">LOGOUT</button>
             </div>
@@ -110,7 +115,7 @@
             </div>
 
             <div class="card">
-                <h4>Live Logs (Click Student for Probability)</h4>
+                <h4>Live Logs (Click Student for Details)</h4>
                 <table>
                     <thead><tr><th>Adm No</th><th>Name</th><th>Class</th><th>Time</th><th>Status</th></tr></thead>
                     <tbody id="table-body"></tbody>
@@ -133,7 +138,6 @@
                     <div class="stat-label">Mode</div>
                     <div class="stat-val" id="val-mode">--</div>
                 </div>
-                <!-- Replaced Global Probability with Consistency Score -->
                 <div class="card stat-card" style="border-color: #9b59b6;">
                     <div class="stat-label" style="color:#e0aaff">Avg Consistency</div>
                     <div class="stat-val" style="color:#e0aaff" id="val-consistency">--%</div>
@@ -167,7 +171,6 @@
                         <canvas id="studentPie"></canvas>
                     </div>
                     
-                    <!-- NEW: Individual Probability Box -->
                     <div class="prob-box">
                         <span style="display:block; font-size:0.8rem; color:#e0aaff; margin-bottom:5px;">NEXT DAY ATTENDANCE PROBABILITY</span>
                         <strong id="mProb" style="font-size:1.8rem; color:white;">--%</strong>
@@ -180,10 +183,20 @@
     <script>
         const SUPABASE_URL = 'https://sbizlblusoergeluicdj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiaXpsYmx1c29lcmdlbHVpY2RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxOTI3MDAsImV4cCI6MjA4MDc2ODcwMH0.m9wIHdTRONaC-ckJF_dPs_F-eULaD3riWgu2_e21mlc';
-        const ESP_IP = 'http://192.168.0.160'; 
-        const TOTAL_STUDENTS = 8; 
+        
+        let currentAdminEspIP = localStorage.getItem('esp_ip_admin') || '192.168.1.7';
+        document.getElementById('adminEspIp').value = currentAdminEspIP;
 
+        function saveAdminIP() {
+            currentAdminEspIP = document.getElementById('adminEspIp').value;
+            localStorage.setItem('esp_ip_admin', currentAdminEspIP);
+        }
+
+        const TOTAL_STUDENTS = 8; 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Global Store
+        let allAttendanceData = [];
 
         function togglePass() {
             const x = document.getElementById('pass');
@@ -195,7 +208,7 @@
         };
 
         function login() {
-            if(document.getElementById('user').value === "teacher" && document.getElementById('pass').value === "teacher") {
+            if(document.getElementById('user').value === "ishamehta67" && document.getElementById('pass').value === "isha@6767") {
                 localStorage.setItem("adminLoggedIn", "true");
                 showDashboard();
             } else {
@@ -222,9 +235,15 @@
         async function resetDB() {
             if(confirm("Permanently delete ALL records and turn off LEDs?")) {
                 await supabase.from('attendance').delete().neq('id', 0);
-                fetch(ESP_IP + '/reset', { mode: 'no-cors' }).catch(e => console.log("ESP Error"));
+                const ip = currentAdminEspIP.startsWith('http') ? currentAdminEspIP : 'http://' + currentAdminEspIP;
+                fetch(ip + '/reset', { mode: 'no-cors' }).catch(e => console.log("ESP Error"));
                 fetchData(true);
             }
+        }
+
+        // Helper: Get local date string YYYY-MM-DD
+        function getLocalYMD(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
 
         let lastCount = -1;
@@ -234,6 +253,8 @@
             const { data, error } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
             
             if(error) return console.error(error);
+            allAttendanceData = data;
+
             if(!force && data.length === lastCount) return;
             lastCount = data.length;
 
@@ -252,8 +273,33 @@
                     </tr>`;
             });
 
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayRecs = data.filter(d => d.created_at.startsWith(todayStr));
+            // --- CALCULATE DATE & COUNTS ---
+            const curr = new Date();
+            const todayStr = getLocalYMD(curr);
+            
+            // Get Monday's date
+            const dayNum = curr.getDay() || 7; 
+            const mondayDate = new Date(curr);
+            mondayDate.setDate(curr.getDate() - dayNum + 1);
+
+            // Construct 6-day week data [Mon, Tue, Wed, Thu, Fri, Sat]
+            const weekData = [0, 0, 0, 0, 0, 0]; 
+            const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            // Loop 6 times (0 to 5)
+            for(let i=0; i<6; i++) {
+                let loopDate = new Date(mondayDate);
+                loopDate.setDate(mondayDate.getDate() + i);
+                const loopDateStr = getLocalYMD(loopDate);
+                
+                // Get Real DB Count - NO INJECTION
+                let countForDay = data.filter(d => getLocalYMD(new Date(d.created_at)) === loopDateStr).length;
+
+                weekData[i] = countForDay;
+            }
+
+            // --- 1. DAILY CHART ---
+            const todayRealCount = data.filter(d => getLocalYMD(new Date(d.created_at)) === todayStr).length;
             
             if(dailyChart) dailyChart.destroy();
             dailyChart = new Chart(document.getElementById('dailyChart'), {
@@ -261,60 +307,60 @@
                 data: {
                     labels: ['Present', 'Absent'],
                     datasets: [{ 
-                        data: [todayRecs.length, TOTAL_STUDENTS - todayRecs.length], 
+                        data: [todayRealCount, TOTAL_STUDENTS - todayRealCount], 
                         backgroundColor: ['#00d2ff', '#333'], borderWidth:0 
                     }]
                 },
                 options: { animation: false, plugins: { legend: { labels: { color: 'white' } } } }
             });
 
-            const todayIdx = new Date().getDay(); 
-            const weekData = [0, 0, 0, 0, 0];
-            for(let i=1; i<=5; i++) {
-                if(i < todayIdx) weekData[i-1] = Math.floor(Math.random() * (TOTAL_STUDENTS - 4)) + 4; 
-                else if (i === todayIdx) weekData[i-1] = todayRecs.length;
-            }
-
+            // --- 2. WEEKLY BAR CHART ---
             if(weeklyChart) weeklyChart.destroy();
             weeklyChart = new Chart(document.getElementById('weeklyChart'), {
                 type: 'bar',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    labels: chartLabels,
                     datasets: [{ label: 'Present', data: weekData, backgroundColor: '#3a7bd5', borderRadius: 4 }]
                 },
                 options: { animation: false, scales: { y: { beginAtZero: true, max: TOTAL_STUDENTS, ticks: {color:'white'} }, x: { ticks: {color:'white'} } }, plugins: { legend: { display: false } } }
             });
 
+            // --- 3. ANALYTICS ---
             updateAnalytics(weekData);
         }
 
         function updateAnalytics(dataArr) {
-            const validData = dataArr.filter(n => n > 0);
-            if(validData.length === 0) validData.push(0);
+            const totalDays = dataArr.length; // 6
 
-            const sum = validData.reduce((a, b) => a + b, 0);
-            const mean = (sum / validData.length).toFixed(1);
+            // MEAN
+            const sum = dataArr.reduce((a, b) => a + b, 0);
+            const mean = (sum / totalDays).toFixed(1);
             
-            const sorted = [...validData].sort((a,b) => a-b);
-            const mid = Math.floor(sorted.length / 2);
-            const median = sorted.length % 2 !== 0 ? sorted[mid] : ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1);
+            // MEDIAN
+            const sorted = [...dataArr].sort((a,b) => a-b);
+            const midIndex1 = Math.floor((totalDays - 1) / 2);
+            const midIndex2 = Math.ceil((totalDays - 1) / 2);
+            const median = ((sorted[midIndex1] + sorted[midIndex2]) / 2).toFixed(1);
 
+            // MODE
             const frequency = {};
             let maxFreq = 0;
             let mode = "None";
-            validData.forEach(v => {
+            
+            dataArr.forEach(v => {
                 frequency[v] = (frequency[v] || 0) + 1;
                 if(frequency[v] > maxFreq) { maxFreq = frequency[v]; mode = v; }
             });
-
-            // Consistency Metric (replacing global prob)
+            
+            // CONSISTENCY
             const consistency = ((mean / TOTAL_STUDENTS) * 100).toFixed(1);
 
             document.getElementById('val-mean').innerText = mean;
-            document.getElementById('val-median').innerText = median;
+            document.getElementById('val-median').innerText = parseFloat(median) === parseInt(median) ? parseInt(median) : median;
             document.getElementById('val-mode').innerText = mode;
             document.getElementById('val-consistency').innerText = consistency + "%";
 
+            // LINE CHART
             if(lineChart) lineChart.destroy();
             const ctxLine = document.getElementById('lineChart').getContext('2d');
             let gradient = ctxLine.createLinearGradient(0, 0, 0, 400);
@@ -324,7 +370,7 @@
             lineChart = new Chart(ctxLine, {
                 type: 'line',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                     datasets: [{
                         label: 'Attendance', data: dataArr, borderColor: '#9b59b6',
                         backgroundColor: gradient, fill: true, tension: 0.4,
@@ -342,6 +388,7 @@
             });
         }
 
+        // --- MODAL LOGIC ---
         let barInstance = null;
         let pieInstance = null;
 
@@ -349,45 +396,49 @@
             document.getElementById('modal').style.display = 'flex';
             document.getElementById('mName').innerText = name;
 
-            const todayIdx = new Date().getDay();
+            const studentRecords = allAttendanceData.filter(d => d.name === name);
+
+            const curr = new Date();
+            const dayNum = curr.getDay() || 7; 
+            const mondayDate = new Date(curr);
+            mondayDate.setDate(curr.getDate() - dayNum + 1);
+
             let studentWeek = [];
             let bgColors = [];
             let presentCount = 0;
-            let totalDays = 0;
-            
-            // SIMULATING INDIVIDUAL DATA HISTORY
-            // Since we don't have DB history, we simulate based on the name to stay consistent
-            // If name is Divyansh, make him very present. If Aryann, maybe slightly less.
-            
-            for(let i=1; i<=5; i++) {
-                let isPresent = 0;
-                
-                if(i <= todayIdx) {
-                    totalDays++;
-                    // Logic: Randomly determine if this specific student was present on past days
-                    // (Simulating DB Fetch)
-                    isPresent = Math.random() > 0.3 ? 1 : 0; 
-                    if(i === todayIdx) isPresent = 1; // Always present today if clicked
-                    
-                    if(isPresent) {
-                        studentWeek.push(1); 
+            let totalDaysPassed = 0;
+            const todayStr = getLocalYMD(new Date());
+
+            for(let i=0; i<6; i++) {
+                let loopDate = new Date(mondayDate);
+                loopDate.setDate(mondayDate.getDate() + i);
+                const loopDateStr = getLocalYMD(loopDate);
+
+                if (loopDateStr > todayStr) {
+                    studentWeek.push(0);
+                    bgColors.push('rgba(255,255,255,0.1)');
+                } else {
+                    totalDaysPassed++;
+                    const hasRecord = studentRecords.some(r => getLocalYMD(new Date(r.created_at)) === loopDateStr);
+
+                    if(hasRecord) {
+                        studentWeek.push(1);
                         bgColors.push('#2ecc71');
                         presentCount++;
                     } else {
                         studentWeek.push(0); 
                         bgColors.push('#e74c3c');
                     }
-                } else {
-                    studentWeek.push(0); 
-                    bgColors.push('rgba(255,255,255,0.1)'); 
                 }
             }
 
-            // CALCULATE INDIVIDUAL PROBABILITY
             let prob = 0;
-            if(totalDays > 0) {
-                prob = Math.round((presentCount / totalDays) * 100);
+            if(totalDaysPassed > 0) {
+                prob = Math.round((presentCount / totalDaysPassed) * 100);
+            } else {
+                prob = 100; 
             }
+            
             document.getElementById('mProb').innerText = prob + "%";
             document.getElementById('mProb').style.color = prob > 75 ? '#2ecc71' : (prob > 50 ? '#f1c40f' : '#e74c3c');
 
@@ -395,7 +446,7 @@
             barInstance = new Chart(document.getElementById('studentBar'), {
                 type: 'bar',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                     datasets: [{ data: studentWeek, backgroundColor: bgColors, barPercentage: 0.6 }]
                 },
                 options: { scales: { y: { display: false }, x: { ticks: { color: 'white' } } }, plugins: { legend: { display: false } } }
@@ -406,7 +457,7 @@
                 type: 'pie',
                 data: {
                     labels: ['Present', 'Absent'],
-                    datasets: [{ data: [presentCount, totalDays - presentCount], backgroundColor: ['#00d2ff', '#e74c3c'], borderWidth: 0 }]
+                    datasets: [{ data: [presentCount, totalDaysPassed - presentCount], backgroundColor: ['#00d2ff', '#e74c3c'], borderWidth: 0 }]
                 },
                 options: { plugins: { legend: { position: 'bottom', labels: { color: 'white' } } } }
             });
