@@ -231,7 +231,7 @@
                 if(weeklyChart) weeklyChart.destroy();
                 weeklyChart = new Chart(document.getElementById('weeklyChart'), {
                     type: 'bar',
-                    data: { labels: ['M', 'T', 'W', 'T', 'F', 'S'], datasets: [{ data: week, backgroundColor: '#3a7bd5' }] },
+                    data: { labels: ['Monday', 'Tuesday', 'Wednesday', 'Thrusday', 'Friday', 'Saturday'], datasets: [{ data: week, backgroundColor: '#3a7bd5' }] },
                     options: { scales: { y: { beginAtZero: true, max: TOTAL_STUDENTS, ticks:{color:'white'} } }, plugins: { legend: { display: false } } }
                 });
             }
