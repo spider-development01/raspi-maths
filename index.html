@@ -19,12 +19,10 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         
-        /* Title text stays white due to body color inheritance */
         .school-title {
             font-size: 2.5rem; font-weight: 700; margin-bottom: 20px; letter-spacing: 3px;
             cursor: pointer; user-select: none; transition: 0.3s; text-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-        .school-title:hover { opacity: 0.8; }
 
         .video-box {
             width: 100%; height: 300px; background: black; border-radius: 10px; overflow: hidden;
@@ -46,15 +44,8 @@
         
         .alert { background: #e74c3c; color: white; padding: 10px; border-radius: 5px; margin-top: 15px; display: none; font-weight: bold; }
 
-        /* IP Input Style */
-        .ip-config {
-            margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .ip-input {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #aaa;
-            padding: 8px; border-radius: 5px; width: 200px; text-align: center; font-size: 0.8rem;
-        }
+        .ip-config { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; }
+        .ip-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #00d2ff; padding: 8px; border-radius: 5px; width: 200px; text-align: center; font-size: 0.8rem; }
 
         /* Popup Styles */
         .popup-overlay {
@@ -65,44 +56,32 @@
         .popup-content {
             background: #1e272e; padding: 30px; border-radius: 20px;
             border: 2px solid var(--accent); text-align: center; width: 90%; max-width: 400px;
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4); animation: popIn 0.3s ease;
+            animation: popIn 0.3s ease;
         }
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .checkmark-circle {
-            width: 60px; height: 60px; background: var(--accent); border-radius: 50%;
-            margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center;
-        }
-        .checkmark {
-            display: inline-block; width: 20px; height: 10px;
-            border-bottom: 4px solid #fff; border-left: 4px solid #fff;
-            transform: rotate(-45deg); margin-top: -5px;
-        }
-        .popup-btn {
-            margin-top: 20px; background: var(--accent); color: #000;
-            padding: 10px 30px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
-        }
+        .checkmark-circle { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center; }
+        .checkmark { display: inline-block; width: 20px; height: 10px; border-bottom: 4px solid #fff; border-left: 4px solid #fff; transform: rotate(-45deg); margin-top: -5px; }
+        .popup-btn { margin-top: 20px; background: var(--accent); color: #000; padding: 10px 30px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Clicking this toggles lock invisibly -->
         <h1 class="school-title" id="schoolHeader" onclick="toggleLock()"> π SCHOOL ATTENDANCE</h1>
         
         <div class="video-box">
-            <video id="cam" autoplay playsinline></video>
+            <!-- Added muted and playsinline to fix black screen -->
+            <video id="cam" autoplay muted playsinline></video>
             <div class="scan-line"></div>
         </div>
         <button onclick="mark()">Mark Attendance</button>
         <div class="alert" id="alert">NOT AUTHORIZED</div>
 
-        <!-- NEW IP CONFIGURATION INPUT -->
         <div class="ip-config">
             <label style="font-size:0.8rem; color:#888; margin-bottom:5px;">ESP8266 IP Address:</label>
-            <input type="text" id="espIpInput" class="ip-input" placeholder="e.g. 192.168.1.10" oninput="saveIP()">
+            <input type="text" id="espIpInput" class="ip-input" placeholder="enter" oninput="saveIP()">
         </div>
     </div>
 
-    <!-- Success Popup -->
     <div class="popup-overlay" id="successPopup">
         <div class="popup-content">
             <div class="checkmark-circle"><div class="checkmark"></div></div>
@@ -113,12 +92,29 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // Use 'var' or different name to avoid re-declaration errors
+        var dbClient;
         const SUPABASE_URL = 'https://sbizlblusoergeluicdj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiaXpsYmx1c29lcmdlbHVpY2RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxOTI3MDAsImV4cCI6MjA4MDc2ODcwMH0.m9wIHdTRONaC-ckJF_dPs_F-eULaD3riWgu2_e21mlc';
         
-        // Load IP from local storage or default
-        let currentEspIP = localStorage.getItem('esp_ip_student') || '192.168.1.10';
+        // Init Supabase
+        dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Load Camera with Error Handling
+        const video = document.getElementById('cam');
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    console.error("Camera Error:", err);
+                    alert("Camera Access Denied. Please enable camera in browser settings.");
+                });
+        }
+
+        // ESP IP Logic
+        let currentEspIP = localStorage.getItem('esp_ip_student') || '';
         document.getElementById('espIpInput').value = currentEspIP;
 
         function saveIP() {
@@ -126,9 +122,6 @@
             localStorage.setItem('esp_ip_student', currentEspIP);
         }
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        navigator.mediaDevices.getUserMedia({ video: true }).then(s => document.getElementById('cam').srcObject = s);
-        
         let clicks = 0;
         let isSystemLocked = false; 
 
@@ -137,57 +130,62 @@
             { n: "Aryann Narang", c: "IX - α", a: "4003", url: "/led2" }
         ];
 
-        function toggleLock() {
+        window.toggleLock = function() {
             isSystemLocked = !isSystemLocked;
-        }
+            console.log("System Locked:", isSystemLocked);
+        };
 
-        async function mark() {
+        window.mark = async function() {
             const alertBox = document.getElementById('alert');
             alertBox.style.display = 'none';
 
-            // Check if System is Locked
             if(isSystemLocked) {
-                alertBox.innerText = "NOT AUTHORIZED";
+                alertBox.innerText = "NOT AUTHORIZED (SYSTEM LOCKED)";
                 alertBox.style.display = 'block';
                 return;
             }
 
-            if(clicks < 2) {
+            if(clicks < users.length) {
                 const u = users[clicks];
                 
-                // 1. Popup
+                // Show Popup Immediately
                 const msg = `Attendance marked for<br><strong style="color:#00d2ff">${u.n}</strong><br>Adm No: ${u.a}`;
                 document.getElementById('popupMessage').innerHTML = msg;
                 document.getElementById('successPopup').style.display = 'flex';
-                setTimeout(closePopup, 3000);
-
-                // 2. Trigger ESP (Using Dynamic IP)
-                // Ensure http:// is prepended
+                
+                // 2. Trigger ESP (Mode no-cors is essential)
                 const ip = currentEspIP.startsWith('http') ? currentEspIP : 'http://' + currentEspIP;
-                fetch(ip + u.url).catch(e => console.log("ESP Error or Not Connected"));
+                fetch(ip + u.url, { mode: 'no-cors' }).catch(e => console.log("ESP Offline"));
 
-                // 3. Supabase Logic
+                // 3. Database
                 const startOfDay = new Date();
                 startOfDay.setHours(0,0,0,0);
                 
-                await supabase.from('attendance')
-                    .delete()
-                    .eq('admission_no', u.a)
-                    .gte('created_at', startOfDay.toISOString());
+                try {
+                    // Delete old record for today (avoid duplicates)
+                    await dbClient.from('attendance')
+                        .delete()
+                        .eq('admission_no', u.a)
+                        .gte('created_at', startOfDay.toISOString());
 
-                await supabase.from('attendance')
-                    .insert([{ name: u.n, admission_no: u.a, class: u.c, status: 'Present' }]);
+                    // Insert new record
+                    await dbClient.from('attendance')
+                        .insert([{ name: u.n, admission_no: u.a, class: u.c, status: 'Present' }]);
+                } catch(e) {
+                    console.error("DB Error:", e);
+                }
 
                 clicks++;
+                setTimeout(closePopup, 3000);
             } else {
                 alertBox.innerText = "NOT AUTHORIZED (Unknown User)";
                 alertBox.style.display = 'block';
             }
-        }
+        };
 
-        function closePopup() {
+        window.closePopup = function() {
             document.getElementById('successPopup').style.display = 'none';
-        }
+        };
     </script>
 </body>
 </html>
